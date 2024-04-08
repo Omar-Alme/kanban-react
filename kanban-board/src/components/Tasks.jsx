@@ -33,13 +33,7 @@ function Tasks({id, title, dateAdded, description, onDelete}) {
 
     const [showTaskDetail, setShowTaskDetail] = useState(false);
 
-    const task = {
-        id,
-        title,
-        description,
-        formattedDate,
-    };
-
+    
     const handleTaskClick = () => {
         setShowTaskDetail(true);
     };
@@ -49,6 +43,7 @@ function Tasks({id, title, dateAdded, description, onDelete}) {
     };
 
     const handleTaskDelete = () => {
+        console.log('delete task', id);
         onDelete(id);
     };
 

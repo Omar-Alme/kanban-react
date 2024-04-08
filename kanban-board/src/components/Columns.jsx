@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
-import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faPlus } from '@fortawesome/free-solid-svg-icons';
+import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
 import { v4 as uuidv4 } from 'uuid';
 import Tasks from './Tasks';
 import TaskForm from './TaskForm';
@@ -60,20 +60,19 @@ const DoneHeader = styled(KanbanHeader)`
     background-color: #f9826c; 
 `;
 
-// Rest of your imports and styled components...
 
 function Columns() {
     const [todoTasks, setTodoTasks] = useState(() => []);
     const [doingTasks, setDoingTasks] = useState(() => []);
     const [doneTasks, setDoneTasks] = useState(() => []);
     const [showTaskForm, setShowTaskForm] = useState(false);
-    
+
+
 
     const addTask = (task) => {
         const newTask = { ...task, id: uuidv4() };
         const updatedTodoTasks = [...todoTasks, newTask];
         setTodoTasks(updatedTodoTasks);
-        localStorage.setItem('tasks', JSON.stringify({ todo: updatedTodoTasks, doing: doingTasks, done: doneTasks }));
         setShowTaskForm(false);
     };
     
@@ -84,39 +83,63 @@ function Columns() {
         setTodoTasks(updatedTodoTasks);
         setDoingTasks(updatedDoingTasks);
         setDoneTasks(updatedDoneTasks);
-        localStorage.setItem('tasks', JSON.stringify({ todo: updatedTodoTasks, doing: updatedDoingTasks, done: updatedDoneTasks }));
     };
-
+    
     const onDragEnd = (result) => {
         const { source, destination, draggableId } = result;
-
+    
         if (!destination) {
             return;
         }
-
+    
         if (source.droppableId === destination.droppableId && source.index === destination.index) {
             return;
         }
-
-        if (source.droppableId === destination.droppableId) {
-            const newTaskList = [...todoTasks];
-            const newTask = newTaskList.splice(source.index, 1);
-            newTaskList.splice(destination.index, 0, newTask[0]);
-            setTodoTasks(newTaskList);
-            localStorage.setItem('tasks', JSON.stringify({ todo: newTaskList, doing: doingTasks, done: doneTasks }));
+    
+        const sourceListId = source.droppableId;
+        const destinationListId = destination.droppableId;
+    
+        if (sourceListId === destinationListId) {
+            // If task is moved within the same list
+            const sourceList = getList(sourceListId);
+            const movedTask = sourceList.splice(source.index, 1)[0];
+            const newList = [...sourceList];
+            newList.splice(destination.index, 0, movedTask);
+    
+            if (sourceListId === 'todo') {
+                setTodoTasks(newList);
+            } else if (sourceListId === 'doing') {
+                setDoingTasks(newList);
+            } else {
+                setDoneTasks(newList);
+            }
         } else {
-            const newTaskList = [...todoTasks];
-            const newTask = newTaskList.splice(source.index, 1);
-            newTaskList.splice(destination.index, 0, newTask[0]);
-            setTodoTasks(newTaskList);
-
-            const newDoingTaskList = [...doingTasks];
-            newDoingTaskList.splice(destination.index, 0, newTask[0]);
-            setDoingTasks(newDoingTaskList);
-            localStorage.setItem('tasks', JSON.stringify({ todo: newTaskList, doing: newDoingTaskList, done: doneTasks }));
+            // If task is moved to a different list
+            const sourceList = getList(sourceListId);
+            const destinationList = getList(destinationListId);
+    
+            const movedTask = sourceList.splice(source.index, 1)[0];
+            movedTask.id = draggableId; // Set the id here
+    
+            destinationList.splice(destination.index, 0, movedTask);
+    
+            setTodoTasks(todoTasks);
+            setDoingTasks(doingTasks);
+            setDoneTasks(doneTasks);
         }
+        
     };
 
+    const getList = (listId) => {
+        if (listId === 'todo') {
+            return todoTasks;
+        } else if (listId === 'doing') {
+            return doingTasks;
+
+        } else {
+            return doneTasks;
+        }
+    };
 
     useEffect(() => {
         const tasks = JSON.parse(localStorage.getItem('tasks'));
@@ -129,17 +152,17 @@ function Columns() {
 
 
     return (
-        <DragDropContext onDragEnd={onDragEnd} >
+        <DragDropContext onDragEnd={onDragEnd}  >
             <ColumnsContainer>
             <Column>
                     <ToDoHeader>Todo</ToDoHeader>
                     {showTaskForm && <TaskForm onSubmit={addTask} />}
                     <Droppable droppableId='todo'>
-                        {(provided, snapshot) => (
+                        {(provided) => (
                             <div ref={provided.innerRef} {...provided.droppableProps}>
                                 {todoTasks.map((task, index) => (
                                     <Draggable key={task.id} draggableId={task.id} index={index}>
-                                        {(provided, snapshot) => (
+                                        {(provided) => (
                                             <div
                                                 ref={provided.innerRef}
                                                 {...provided.draggableProps}
@@ -169,11 +192,11 @@ function Columns() {
                 <Column>
                     <DoingHeader>Doing</DoingHeader>
                     <Droppable droppableId='doing'>
-                        {(provided, snapshot) => (
+                        {(provided) => (
                             <div ref={provided.innerRef} {...provided.droppableProps}>
                                 {doingTasks.map((task, index) => (
                                     <Draggable key={task.id} draggableId={task.id} index={index}>
-                                        {(provided, snapshot) => (
+                                        {(provided) => (
                                             <div
                                                 ref={provided.innerRef}
                                                 {...provided.draggableProps}
@@ -199,11 +222,11 @@ function Columns() {
                 <Column>
                     <DoneHeader>Done</DoneHeader>
                     <Droppable droppableId='done'>
-                        {(provided, snapshot) => (
+                        {(provided) => (
                             <div ref={provided.innerRef} {...provided.droppableProps}>
                                 {doneTasks.map((task, index) => (
                                     <Draggable key={task.id} draggableId={task.id} index={index}>
-                                        {(provided, snapshot) => (
+                                        {(provided) => (
                                             <div
                                                 ref={provided.innerRef}
                                                 {...provided.draggableProps}

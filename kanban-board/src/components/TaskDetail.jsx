@@ -54,7 +54,6 @@ function TaskDetail({ task, onClose, onDelete }) {
         <TaskDetailContainer>
             <CloseButton onClick={onClose}><FontAwesomeIcon icon={faX}/></CloseButton>
                 <>    
-            
             <h2>{task.title}</h2>
             <p>{task.formattedDate}</p>
             <br />
