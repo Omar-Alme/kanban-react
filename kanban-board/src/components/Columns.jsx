@@ -67,121 +67,79 @@ function Columns() {
     const [doingTasks, setDoingTasks] = useState(() => []);
     const [doneTasks, setDoneTasks] = useState(() => []);
     const [showTaskForm, setShowTaskForm] = useState(false);
-
-    // Load tasks from local storage when the component mounts
-    useEffect(() => {
-        const storedTasks = JSON.parse(localStorage.getItem('tasks'));
-        if (storedTasks) {
-            setTodoTasks(storedTasks.todo || []);
-            setDoingTasks(storedTasks.doing || []);
-            setDoneTasks(storedTasks.done || []);
-        }
-    }, []);
-
-    // Update local storage whenever tasks are updated
-    useEffect(() => {
-        localStorage.setItem('tasks', JSON.stringify({ todo: todoTasks, doing: doingTasks, done: doneTasks }));
-    }, [todoTasks, doingTasks, doneTasks]);
-
+    
 
     const addTask = (task) => {
         const newTask = { ...task, id: uuidv4() };
-        setTodoTasks([...todoTasks, newTask]);
-        localStorage.setItem('tasks', JSON.stringify({ todo: todoTasks, doing: doingTasks, done: doneTasks }));
+        const updatedTodoTasks = [...todoTasks, newTask];
+        setTodoTasks(updatedTodoTasks);
+        localStorage.setItem('tasks', JSON.stringify({ todo: updatedTodoTasks, doing: doingTasks, done: doneTasks }));
         setShowTaskForm(false);
     };
-
+    
     const deleteTask = (task) => {
-        setTodoTasks(todoTasks.filter((t) => t !== task));
-        setDoingTasks(doingTasks.filter((t) => t !== task));
-        setDoneTasks(doneTasks.filter((t) => t !== task));
-        localStorage.setItem('tasks', JSON.stringify({ todo: todoTasks, doing: doingTasks, done: doneTasks }));
+        const updatedTodoTasks = todoTasks.filter((t) => t.id !== task.id);
+        const updatedDoingTasks = doingTasks.filter((t) => t.id !== task.id);
+        const updatedDoneTasks = doneTasks.filter((t) => t.id !== task.id);
+        setTodoTasks(updatedTodoTasks);
+        setDoingTasks(updatedDoingTasks);
+        setDoneTasks(updatedDoneTasks);
+        localStorage.setItem('tasks', JSON.stringify({ todo: updatedTodoTasks, doing: updatedDoingTasks, done: updatedDoneTasks }));
     };
 
-        
     const onDragEnd = (result) => {
-        const { destination, source, draggableId } = result;
+        const { source, destination, draggableId } = result;
 
-        if (!destination) return; // If dropped outside of droppable area
+        if (!destination) {
+            return;
+        }
 
-        const sourceColumn = getColumnId(source.droppableId);
-        const destinationColumn = getColumnId(destination.droppableId);
+        if (source.droppableId === destination.droppableId && source.index === destination.index) {
+            return;
+        }
 
-        const sourceTasks = getColumnTasks(sourceColumn);
-        const destinationTasks = getColumnTasks(destinationColumn);
-        const draggedTask = sourceTasks.find(task => task.id === draggableId);
-
-        if (sourceColumn === destinationColumn) {
-            // If dropped within the same column
-            const tasks = reorderTasks(
-                sourceTasks,
-                source.index,
-                destination.index
-            );
-
-            updateColumnTasks(tasks, sourceColumn);
+        if (source.droppableId === destination.droppableId) {
+            const newTaskList = [...todoTasks];
+            const newTask = newTaskList.splice(source.index, 1);
+            newTaskList.splice(destination.index, 0, newTask[0]);
+            setTodoTasks(newTaskList);
+            localStorage.setItem('tasks', JSON.stringify({ todo: newTaskList, doing: doingTasks, done: doneTasks }));
         } else {
-            // If dropped in different columns
-            sourceTasks.splice(source.index, 1);
-            destinationTasks.splice(destination.index, 0, draggedTask);
+            const newTaskList = [...todoTasks];
+            const newTask = newTaskList.splice(source.index, 1);
+            newTaskList.splice(destination.index, 0, newTask[0]);
+            setTodoTasks(newTaskList);
 
-            updateColumnTasks(sourceTasks, sourceColumn);
-            updateColumnTasks(destinationTasks, destinationColumn);
+            const newDoingTaskList = [...doingTasks];
+            newDoingTaskList.splice(destination.index, 0, newTask[0]);
+            setDoingTasks(newDoingTaskList);
+            localStorage.setItem('tasks', JSON.stringify({ todo: newTaskList, doing: newDoingTaskList, done: doneTasks }));
         }
     };
 
-    const getColumnId = (droppableId) => {
-        return droppableId;
-    };
 
-    const getColumnTasks = (column) => {
-        switch (column) {
-            case 'todo':
-                return todoTasks;
-            case 'doing':
-                return doingTasks;
-            case 'done':
-                return doneTasks;
-            default:
-                return [];
+    useEffect(() => {
+        const tasks = JSON.parse(localStorage.getItem('tasks'));
+        if (tasks) {
+            setTodoTasks(tasks.todo);
+            setDoingTasks(tasks.doing);
+            setDoneTasks(tasks.done);
         }
-    };
+    }, []);
 
-    const reorderTasks = (list, startIndex, endIndex) => {
-        const result = Array.from(list);
-        const [removed] = result.splice(startIndex, 1);
-        result.splice(endIndex, 0, removed);
-        return result;
-    };
-
-    const updateColumnTasks = (tasks, column) => {
-        switch (column) {
-            case 'todo':
-                setTodoTasks(tasks);
-                break;
-            case 'doing':
-                setDoingTasks(tasks);
-                break;
-            case 'done':
-                setDoneTasks(tasks);
-                break;
-            default:
-                break;
-        }
-    };
 
     return (
-        <DragDropContext onDragEnd={onDragEnd}>
+        <DragDropContext onDragEnd={onDragEnd} >
             <ColumnsContainer>
             <Column>
                     <ToDoHeader>Todo</ToDoHeader>
                     {showTaskForm && <TaskForm onSubmit={addTask} />}
-                    <Droppable droppableId="todo">
-                        {(provided) => (
+                    <Droppable droppableId='todo'>
+                        {(provided, snapshot) => (
                             <div ref={provided.innerRef} {...provided.droppableProps}>
                                 {todoTasks.map((task, index) => (
                                     <Draggable key={task.id} draggableId={task.id} index={index}>
-                                        {(provided) => (
+                                        {(provided, snapshot) => (
                                             <div
                                                 ref={provided.innerRef}
                                                 {...provided.draggableProps}
@@ -202,18 +160,20 @@ function Columns() {
                             </div>
                         )}
                     </Droppable>
+                    
+
                     <AddTaskButtonHover onClick={() => setShowTaskForm(true)}>
                         <FontAwesomeIcon icon={faPlus} /> Skapa Ny uppgift
                     </AddTaskButtonHover>
                 </Column>
                 <Column>
                     <DoingHeader>Doing</DoingHeader>
-                    <Droppable droppableId="doing">
-                        {(provided) => (
+                    <Droppable droppableId='doing'>
+                        {(provided, snapshot) => (
                             <div ref={provided.innerRef} {...provided.droppableProps}>
                                 {doingTasks.map((task, index) => (
                                     <Draggable key={task.id} draggableId={task.id} index={index}>
-                                        {(provided) => (
+                                        {(provided, snapshot) => (
                                             <div
                                                 ref={provided.innerRef}
                                                 {...provided.draggableProps}
@@ -234,15 +194,16 @@ function Columns() {
                             </div>
                         )}
                     </Droppable>
+                    
                 </Column>
                 <Column>
                     <DoneHeader>Done</DoneHeader>
-                    <Droppable droppableId="done">
-                        {(provided) => (
+                    <Droppable droppableId='done'>
+                        {(provided, snapshot) => (
                             <div ref={provided.innerRef} {...provided.droppableProps}>
                                 {doneTasks.map((task, index) => (
                                     <Draggable key={task.id} draggableId={task.id} index={index}>
-                                        {(provided) => (
+                                        {(provided, snapshot) => (
                                             <div
                                                 ref={provided.innerRef}
                                                 {...provided.draggableProps}
@@ -263,6 +224,8 @@ function Columns() {
                             </div>
                         )}
                     </Droppable>
+
+                    
                 </Column>
 
             </ColumnsContainer>

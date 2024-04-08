@@ -56,11 +56,13 @@ function TaskForm({ onSubmit }) {
             <form onSubmit={handleSubmit}>
                 <TaskFormInput
                     type="text"
+                    id="title"
                     placeholder="Task title"
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
                 />
                 <TaskFormTextarea
+                    id="description"
                     placeholder="Task description"
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
