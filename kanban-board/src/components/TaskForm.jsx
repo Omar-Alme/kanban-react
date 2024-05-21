@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useContext, useState } from 'react';
 import styled from 'styled-components';
+import TaskContext from '../context/TaskContext';
 
 const TaskFormContainer = styled.div`
     margin-top: 20px;
@@ -40,15 +41,17 @@ const TaskFormButtonHover = styled(TaskFormButton)`
     }
 `;
 
-function TaskForm({ onSubmit }) {
+function TaskForm({ listId, setShowTaskForm }) {
     const [title, setTitle] = useState('');
     const [description, setDescription] = useState('');
+    const {addTask} = useContext (TaskContext)
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        onSubmit({ title, description });
+        addTask({ title, description },listId);
         setTitle('');
         setDescription('');
+        setShowTaskForm (false);
     };
 
     return (
@@ -74,4 +77,3 @@ function TaskForm({ onSubmit }) {
 }
 
 export default TaskForm;
-

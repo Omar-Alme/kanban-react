@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import styled from 'styled-components';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faPlus } from '@fortawesome/free-solid-svg-icons';
@@ -6,6 +6,7 @@ import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
 import { v4 as uuidv4 } from 'uuid';
 import Tasks from './Tasks';
 import TaskForm from './TaskForm';
+import TaskContext from '../context/TaskContext';
 
 const ColumnsContainer = styled.div`
     display: flex;
@@ -31,8 +32,8 @@ const KanbanHeader = styled.h2`
     text-align: left;
 `;
 
-const ToDoHeader = styled(KanbanHeader)`
-    background-color: #6cc644; 
+const StyledHeader = styled(KanbanHeader)`
+    background-color: ${props => props.color}; 
 `;
 
 const AddTaskButton = styled.button`
@@ -52,205 +53,86 @@ const AddTaskButtonHover = styled(AddTaskButton)`
     }
 `;
 
-const DoingHeader = styled(KanbanHeader)`
-    background-color: #4078c0; 
-`;
-
-const DoneHeader = styled(KanbanHeader)`
-    background-color: #f9826c; 
-`;
-
+const getColor = (listId) => {
+    const colors = { todo: '#6cc644', doing: '#4078c0', done: '#f9826c' };
+    return colors[listId] || '#fff';
+};
 
 function Columns() {
-    const [todoTasks, setTodoTasks] = useState(() => []);
-    const [doingTasks, setDoingTasks] = useState(() => []);
-    const [doneTasks, setDoneTasks] = useState(() => []);
     const [showTaskForm, setShowTaskForm] = useState(false);
+    const {tasks, setTasks} = useContext (TaskContext)
 
-
-
-    const addTask = (task) => {
-        const newTask = { ...task, id: uuidv4() };
-        const updatedTodoTasks = [...todoTasks, newTask];
-        setTodoTasks(updatedTodoTasks);
-        setShowTaskForm(false);
-    };
-    
-    const deleteTask = (task) => {
-        const updatedTodoTasks = todoTasks.filter((t) => t.id !== task.id);
-        const updatedDoingTasks = doingTasks.filter((t) => t.id !== task.id);
-        const updatedDoneTasks = doneTasks.filter((t) => t.id !== task.id);
-        setTodoTasks(updatedTodoTasks);
-        setDoingTasks(updatedDoingTasks);
-        setDoneTasks(updatedDoneTasks);
-    };
-    
     const onDragEnd = (result) => {
         const { source, destination, draggableId } = result;
-    
-        if (!destination) {
-            return;
-        }
-    
-        if (source.droppableId === destination.droppableId && source.index === destination.index) {
-            return;
-        }
-    
-        const sourceListId = source.droppableId;
-        const destinationListId = destination.droppableId;
-    
-        if (sourceListId === destinationListId) {
-            // If task is moved within the same list
-            const sourceList = getList(sourceListId);
-            const movedTask = sourceList.splice(source.index, 1)[0];
-            const newList = [...sourceList];
-            newList.splice(destination.index, 0, movedTask);
-    
-            if (sourceListId === 'todo') {
-                setTodoTasks(newList);
-            } else if (sourceListId === 'doing') {
-                setDoingTasks(newList);
-            } else {
-                setDoneTasks(newList);
-            }
-        } else {
-            // If task is moved to a different list
-            const sourceList = getList(sourceListId);
-            const destinationList = getList(destinationListId);
-    
-            const movedTask = sourceList.splice(source.index, 1)[0];
-            movedTask.id = draggableId; // Set the id here
-    
+        if (!destination) return;
+
+        const sourceList = tasks[source.droppableId];
+        const destinationList = tasks[destination.droppableId];
+        const movedTask = sourceList[source.index];
+        const newList = { ...tasks };
+
+        if (source.droppableId === destination.droppableId) {
+            sourceList.splice(source.index, 1);
             destinationList.splice(destination.index, 0, movedTask);
-    
-            setTodoTasks(todoTasks);
-            setDoingTasks(doingTasks);
-            setDoneTasks(doneTasks);
-        }
-        
-    };
-
-    const getList = (listId) => {
-        if (listId === 'todo') {
-            return todoTasks;
-        } else if (listId === 'doing') {
-            return doingTasks;
-
         } else {
-            return doneTasks;
+            sourceList.splice(source.index, 1);
+            destinationList.splice(destination.index, 0, { ...movedTask, id: draggableId });
         }
-    };
 
+        setTasks(newList);
+    };
+    console.log (tasks);
     useEffect(() => {
-        const tasks = JSON.parse(localStorage.getItem('tasks'));
-        if (tasks) {
-            setTodoTasks(tasks.todo);
-            setDoingTasks(tasks.doing);
-            setDoneTasks(tasks.done);
-        }
+        const savedTasks = JSON.parse(localStorage.getItem('tasks'));
+        if (savedTasks) setTasks(savedTasks);
     }, []);
 
+    useEffect(() => {
+        localStorage.setItem('tasks', JSON.stringify(tasks));
+    }, [tasks]);
 
     return (
-        <DragDropContext onDragEnd={onDragEnd}  >
+        <DragDropContext onDragEnd={onDragEnd}>
             <ColumnsContainer>
-            <Column>
-                    <ToDoHeader>Todo</ToDoHeader>
-                    {showTaskForm && <TaskForm onSubmit={addTask} />}
-                    <Droppable droppableId='todo'>
-                        {(provided) => (
-                            <div ref={provided.innerRef} {...provided.droppableProps}>
-                                {todoTasks.map((task, index) => (
-                                    <Draggable key={task.id} draggableId={task.id} index={index}>
-                                        {(provided) => (
-                                            <div
-                                                ref={provided.innerRef}
-                                                {...provided.draggableProps}
-                                                {...provided.dragHandleProps}
-                                            >
-                                                <Tasks
-                                                    key={task.id}
-                                                    title={task.title}
-                                                    dateAdded={new Date().toLocaleString()}
-                                                    description={task.description}
-                                                    onDelete={() => deleteTask(task)}
-                                                />
-                                            </div>
-                                        )}
-                                    </Draggable>
-                                ))}
-                                {provided.placeholder}
-                            </div>
+                {Object.entries(tasks).map(([listId, list]) => (
+                    <Column key={listId}>
+                        <StyledHeader color={getColor(listId)}>
+                            {listId.charAt(0).toUpperCase() + listId.slice(1)}
+                        </StyledHeader>
+                        {listId === 'todo' && (
+                            <>
+                                {showTaskForm && <TaskForm setShowTaskForm = {setShowTaskForm} listId={listId} />}
+                                <AddTaskButtonHover onClick={() => setShowTaskForm(true)}>
+                                    <FontAwesomeIcon icon={faPlus} /> Skapa Ny Uppgift
+                                </AddTaskButtonHover>
+                            </>
                         )}
-                    </Droppable>
-                    
-
-                    <AddTaskButtonHover onClick={() => setShowTaskForm(true)}>
-                        <FontAwesomeIcon icon={faPlus} /> Skapa Ny uppgift
-                    </AddTaskButtonHover>
-                </Column>
-                <Column>
-                    <DoingHeader>Doing</DoingHeader>
-                    <Droppable droppableId='doing'>
-                        {(provided) => (
-                            <div ref={provided.innerRef} {...provided.droppableProps}>
-                                {doingTasks.map((task, index) => (
-                                    <Draggable key={task.id} draggableId={task.id} index={index}>
-                                        {(provided) => (
-                                            <div
-                                                ref={provided.innerRef}
-                                                {...provided.draggableProps}
-                                                {...provided.dragHandleProps}
-                                            >
-                                                <Tasks
-                                                    key={task.id}
-                                                    title={task.title}
-                                                    dateAdded={new Date().toLocaleString()}
-                                                    description={task.description}
-                                                    onDelete={() => deleteTask(task)}
-                                                />
-                                            </div>
-                                        )}
-                                    </Draggable>
-                                ))}
-                                {provided.placeholder}
-                            </div>
-                        )}
-                    </Droppable>
-                    
-                </Column>
-                <Column>
-                    <DoneHeader>Done</DoneHeader>
-                    <Droppable droppableId='done'>
-                        {(provided) => (
-                            <div ref={provided.innerRef} {...provided.droppableProps}>
-                                {doneTasks.map((task, index) => (
-                                    <Draggable key={task.id} draggableId={task.id} index={index}>
-                                        {(provided) => (
-                                            <div
-                                                ref={provided.innerRef}
-                                                {...provided.draggableProps}
-                                                {...provided.dragHandleProps}
-                                            >
-                                                <Tasks
-                                                    key={task.id}
-                                                    title={task.title}
-                                                    dateAdded={new Date().toLocaleString()}
-                                                    description={task.description}
-                                                    onDelete={() => deleteTask(task)}
-                                                />
-                                            </div>
-                                        )}
-                                    </Draggable>
-                                ))}
-                                {provided.placeholder}
-                            </div>
-                        )}
-                    </Droppable>
-
-                    
-                </Column>
-
+                        <Droppable droppableId={listId}>
+                            {(provided) => (
+                                <div ref={provided.innerRef} {...provided.droppableProps}>
+                                    {list.map((task, index) => ( 
+                                        <Draggable key={task.id} draggableId={task.id} index={index}>
+                                            {(provided) => (
+                                                <div
+                                                    ref={provided.innerRef}
+                                                    {...provided.draggableProps}
+                                                    {...provided.dragHandleProps}
+                                                >
+                                                    <Tasks
+                                                        task={task}
+                                                        onDelete={() => deleteTask(task.id, listId)}
+                                                        listId={listId}
+                                                    />
+                                                </div>
+                                            )}
+                                        </Draggable>
+                                    ))}
+                                    {provided.placeholder}
+                                </div>
+                            )}
+                        </Droppable>
+                    </Column>
+                ))}
             </ColumnsContainer>
         </DragDropContext>
     );

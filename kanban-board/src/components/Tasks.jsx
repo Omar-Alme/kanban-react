@@ -1,7 +1,6 @@
-import React, {useState} from 'react';
+import React, { useState } from 'react';
 import styled from 'styled-components';
 import { format } from 'date-fns';
-import { v4 as uuidv4 } from 'uuid';
 import TaskDetail from './TaskDetail';
 
 const TaskCard = styled.div`
@@ -26,14 +25,12 @@ const TaskDate = styled.p`
     margin: 0;
 `;
 
+function Tasks({ task, onUpdate, onDelete, listId }) {
 
-
-function Tasks({id, title, dateAdded, description, onDelete}) {
-    const formattedDate = format(new Date(dateAdded), 'yyyy-MM-dd');
+   // const formattedDate = format(new Date(task.date), 'yyyy-MM-dd');
 
     const [showTaskDetail, setShowTaskDetail] = useState(false);
 
-    
     const handleTaskClick = () => {
         setShowTaskDetail(true);
     };
@@ -43,27 +40,31 @@ function Tasks({id, title, dateAdded, description, onDelete}) {
     };
 
     const handleTaskDelete = () => {
-        console.log('delete task', id);
-        onDelete(id);
+        onDelete(task.id);
+    };
+
+    const handleTaskUpdate = (updatedTask) => {
+        onUpdate(updatedTask);
     };
 
     return (
         <>
-        <TaskCard onClick={handleTaskClick}>
-            <TaskTitle>{title}</TaskTitle>
-            <TaskDate>{formattedDate} </TaskDate>
+            <TaskCard onClick={handleTaskClick}>
+                <TaskTitle>{task.title}</TaskTitle>
+                <TaskDate>{task.date}</TaskDate>
+            </TaskCard>
+            {showTaskDetail && (
+                <TaskDetail
+                    task={task}
+                    onClose={handleClose}
+                    onDelete={handleTaskDelete}
+                    onUpdate={handleTaskUpdate}
+                    listId={listId}
             
-        </TaskCard>
-        {showTaskDetail && (
-            <TaskDetail 
-                taskId={id}
-                task={{id, title, description, formattedDate}}  
-                onClose={handleClose} 
-                description={description} 
-                onDelete={handleTaskDelete}
-            />
-        )} 
-    </>         
+                />
+                
+            )}
+        </>
     );
 }
 

@@ -1,17 +1,20 @@
-import React, { useState } from 'react';
+import React from 'react';
+import { useParams } from 'react-router-dom';
 import Header from './components/Header';
 import Columns from './components/Columns';
 
 import './App.css';
 
-
 function App() {
-  return (
-    <div>
-    <Header />
-    <Columns />
-    </div>
-  );
+    const { columnName } = useParams(); 
+
+    return (
+        
+            <div>
+                <Header />
+                <Columns columnName={columnName} />
+            </div>
+    );
 }
 
 export default App;
