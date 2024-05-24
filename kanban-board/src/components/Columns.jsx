@@ -3,7 +3,6 @@ import styled from 'styled-components';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faPlus } from '@fortawesome/free-solid-svg-icons';
 import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
-import { v4 as uuidv4 } from 'uuid';
 import Tasks from './Tasks';
 import TaskForm from './TaskForm';
 import TaskContext from '../context/TaskContext';

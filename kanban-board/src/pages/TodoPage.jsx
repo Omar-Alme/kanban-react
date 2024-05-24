@@ -1,8 +1,6 @@
-import {useContext, useEffect} from 'react'
+import {useContext} from 'react'
 import TaskContext from '../context/TaskContext'
-import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
 import Tasks from '../components/Tasks';
-import Column from '../components/Columns';
 
 function TodoPage() {
     const {tasks, setTasks} = useContext(TaskContext)
